@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import type { ComponentChildren } from "preact";
+import { useEffect, useMemo, useState } from "preact/hooks";
 import { actions, useStore } from "../store";
 import { buildIndex, isEntity, unlinkedMentions } from "../project/links";
 import { sectionFor, type Doc, type Status } from "../project/model";
@@ -88,7 +89,7 @@ function ChapterFields({ doc }: { doc: Doc }) {
         <span>Status</span>
         <select
           value={doc.meta.status ?? ""}
-          onChange={(e) => actions.updateMeta(doc.id, { status: (e.target.value || undefined) as Status | undefined })}
+          onChange={(e) => actions.updateMeta(doc.id, { status: (e.currentTarget.value || undefined) as Status | undefined })}
         >
           <option value="">—</option>
           <option value="draft">Draft</option>
@@ -128,7 +129,7 @@ function Field(props: { label: string; value: string; multiline?: boolean; place
   const common = {
     value,
     placeholder: props.placeholder,
-    onChange: (e: { target: { value: string } }) => setValue(e.target.value),
+    onInput: (e: { currentTarget: { value: string } }) => setValue(e.currentTarget.value),
     onBlur: () => value !== props.value && props.onCommit(value.trim()),
   };
   return (
@@ -139,7 +140,7 @@ function Field(props: { label: string; value: string; multiline?: boolean; place
   );
 }
 
-function Group({ title, empty, children }: { title: string; empty?: string; children: React.ReactNode }) {
+function Group({ title, empty, children }: { title: string; empty?: string; children: ComponentChildren }) {
   const has = Array.isArray(children) ? children.length > 0 : Boolean(children);
   return (
     <section className="group">

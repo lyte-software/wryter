@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState } from "preact/hooks";
 import { fs, isTauri } from "../fs";
 import { actions, useStore } from "../store";
 
@@ -37,7 +37,7 @@ export function Welcome() {
             void create();
           }}
         >
-          <input placeholder="Name your project" value={title} onChange={(e) => setTitle(e.target.value)} />
+          <input placeholder="Name your project" value={title} onInput={(e) => setTitle(e.currentTarget.value)} />
           <button type="submit" className="primary">
             New project
           </button>

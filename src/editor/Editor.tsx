@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "preact/hooks";
 import { EditorContent, useEditor, type Editor as TiptapEditor } from "@tiptap/react";
 import { Focus, Placeholder } from "@tiptap/extensions";
 import { actions, useStore } from "../store";
@@ -106,7 +106,7 @@ function TitleField({ doc }: { doc: Doc }) {
       className="doc-title"
       value={value}
       aria-label="Title"
-      onChange={(e) => setValue(e.target.value)}
+      onInput={(e) => setValue(e.currentTarget.value)}
       onBlur={commit}
       onKeyDown={(e) => {
         if (e.key === "Enter") (e.target as HTMLInputElement).blur();
@@ -229,7 +229,7 @@ function LabelField({ editor, el }: { editor: TiptapEditor; el: HTMLElement }) {
       <input
         value={value}
         placeholder={node.attrs.target}
-        onChange={(e) => setValue(e.target.value)}
+        onInput={(e) => setValue(e.currentTarget.value)}
         onBlur={commit}
         onKeyDown={(e) => {
           if (e.key === "Enter") (e.target as HTMLInputElement).blur();
@@ -296,6 +296,8 @@ function SelectionPicker({ editor, selected, onClose }: {
   const [query, setQuery] = useState("");
   const [index, setIndex] = useState(0);
   const items = useMemo(() => searchEntities(query), [query]);
+  const input = useRef<HTMLInputElement>(null);
+  useEffect(() => input.current?.focus(), []);
 
   const pick = (item: LinkItem) => {
     onClose();
@@ -309,11 +311,11 @@ function SelectionPicker({ editor, selected, onClose }: {
   return (
     <div className="link-menu link-picker" style={{ left: selected.left, top: selected.top }}>
       <input
-        autoFocus
+        ref={input}
         value={query}
         placeholder={`Link “${selected.text}” to…`}
-        onChange={(e) => {
-          setQuery(e.target.value);
+        onInput={(e) => {
+          setQuery(e.currentTarget.value);
           setIndex(0);
         }}
         onBlur={onClose}

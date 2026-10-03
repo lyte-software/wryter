@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo } from "preact/hooks";
 import { actions, THEMES, useStore, type Theme } from "../store";
 import { wordCount, type Doc } from "../project/model";
 
@@ -22,7 +22,7 @@ export function StatusBar({ doc }: { doc: Doc | null }) {
       <button onClick={() => actions.setQuickOpen(true)} title="Quick open (Ctrl+P)">
         Go to…
       </button>
-      <select value={theme} onChange={(e) => actions.setTheme(e.target.value as Theme)} title="Theme" aria-label="Theme">
+      <select value={theme} onChange={(e) => actions.setTheme(e.currentTarget.value as Theme)} title="Theme" aria-label="Theme">
         {THEMES.map((t) => (
           <option key={t.id} value={t.id}>
             {t.label}

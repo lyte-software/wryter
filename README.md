@@ -37,37 +37,15 @@ project folder also opens as an Obsidian vault.
 
 ## Install
 
-There are no prebuilt downloads yet, so AuthorBox is built from source. It takes a few
-minutes the first time (Rust compiles Tauri), and seconds after that.
+There are no prebuilt downloads yet, so AuthorBox is built from source. Every platform
+follows the same three steps: install the prerequisites, build, install what the build
+produced. The first build takes a few minutes (Rust compiles Tauri); later ones take
+seconds.
 
-### 1. Prerequisites
+Pick your platform for prerequisites and install steps: [Linux](#linux) ·
+[macOS](#macos) · [Windows](#windows).
 
-- **Node.js 22+** and npm: <https://nodejs.org> or your package manager.
-- **Rust** (via rustup):
-
-  ```sh
-  curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-  source ~/.cargo/env
-  ```
-
-- **System libraries** for the native window (WebKitGTK and friends):
-
-  ```sh
-  # Fedora
-  sudo dnf group install c-development
-  sudo dnf install webkit2gtk4.1-devel openssl-devel libxdo-devel librsvg2-devel \
-    libappindicator-gtk3-devel curl wget file
-
-  # Debian / Ubuntu
-  sudo apt install build-essential libwebkit2gtk-4.1-dev libssl-dev libxdo-dev \
-    librsvg2-dev libayatana-appindicator3-dev curl wget file
-  ```
-
-  macOS needs only the Xcode Command Line Tools (`xcode-select --install`); Windows needs
-  the Microsoft C++ Build Tools and WebView2. Details:
-  <https://v2.tauri.app/start/prerequisites/>.
-
-### 2. Build
+**Building is the same everywhere** once prerequisites are in place:
 
 ```sh
 git clone <this repo> authorbox
@@ -76,20 +54,47 @@ npm install
 npm run tauri build
 ```
 
-Output lands in `src-tauri/target/release/`:
+Everything lands under `src-tauri/target/release/` (written `src-tauri\target\release\`
+on Windows). To build one package type instead of all of them, add
+`-- --bundles <type>` (types listed per platform below), or `-- --no-bundle` for just
+the app binary.
 
-| File | What it is |
-| --- | --- |
-| `authorbox` | The app itself; runs in place |
-| `bundle/rpm/*.rpm` | Fedora / RHEL package |
-| `bundle/deb/*.deb` | Debian / Ubuntu package |
-| `bundle/appimage/*.AppImage` | Portable, runs on most distros |
+### Linux
 
-To build only what you need (the AppImage step downloads extra tools and is the one most
-likely to fail): `npm run tauri build -- --bundles rpm` (or `deb`, `appimage`), or
-`npm run tauri build -- --no-bundle` for just the binary.
+**Prerequisites**
 
-### 3. Install
+```sh
+# Node.js 22+ (check with `node --version`). Fedora's package is recent enough;
+# Debian/Ubuntu's often isn't, so use https://nodejs.org there.
+sudo dnf install nodejs
+
+# Rust
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+source ~/.cargo/env
+
+# System libraries (WebKitGTK and friends)
+# Fedora
+sudo dnf group install c-development
+sudo dnf install webkit2gtk4.1-devel openssl-devel libxdo-devel librsvg2-devel \
+  libappindicator-gtk3-devel curl wget file
+# Debian / Ubuntu
+sudo apt install build-essential libwebkit2gtk-4.1-dev libssl-dev libxdo-dev \
+  librsvg2-dev libayatana-appindicator3-dev curl wget file
+```
+
+**Build output** (in `src-tauri/target/release/`)
+
+| File | What it is | `--bundles` |
+| --- | --- | --- |
+| `authorbox` | The app itself; runs in place | |
+| `bundle/rpm/*.rpm` | Fedora / RHEL package | `rpm` |
+| `bundle/deb/*.deb` | Debian / Ubuntu package | `deb` |
+| `bundle/appimage/*.AppImage` | Portable, runs on most distros | `appimage` |
+
+The AppImage step downloads extra tools and is the one most likely to fail; if it does,
+build just your distro's package.
+
+**Install**
 
 ```sh
 # Fedora
@@ -103,7 +108,96 @@ chmod +x src-tauri/target/release/bundle/appimage/*.AppImage
 ./src-tauri/target/release/bundle/appimage/*.AppImage
 ```
 
-AuthorBox then appears in your app launcher. To update, pull, rebuild and install again.
+AuthorBox then appears in your app launcher.
+
+### macOS
+
+**Prerequisites**
+
+```sh
+# Apple's compilers (a dialog pops up; click Install)
+xcode-select --install
+
+# Node.js 22+: https://nodejs.org, or with Homebrew:
+brew install node
+
+# Rust
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+source ~/.cargo/env
+```
+
+No other libraries are needed: macOS ships the WebKit engine AuthorBox uses.
+
+**Build output** (in `src-tauri/target/release/`)
+
+| File | What it is | `--bundles` |
+| --- | --- | --- |
+| `bundle/macos/AuthorBox.app` | The app | `app` |
+| `bundle/dmg/*.dmg` | Disk image, for installing or sharing | `dmg` |
+
+The build matches your Mac's chip (Apple Silicon or Intel). For one build that runs on
+both: `rustup target add aarch64-apple-darwin x86_64-apple-darwin`, then
+`npm run tauri build -- --target universal-apple-darwin` (output moves to
+`src-tauri/target/universal-apple-darwin/release/`).
+
+**Install**: open the `.dmg` and drag AuthorBox into Applications, or copy the `.app`
+there directly:
+
+```sh
+cp -R src-tauri/target/release/bundle/macos/AuthorBox.app /Applications/
+```
+
+The app isn't signed by Apple. That doesn't matter for an app you built yourself, but if
+you send it to another Mac, macOS will block it the first time it opens: they need to
+go to **System Settings → Privacy & Security** and click **Open Anyway**.
+
+### Windows
+
+**Prerequisites** (Windows 10 or 11)
+
+1. **Microsoft C++ Build Tools**: download from
+   <https://visualstudio.microsoft.com/visual-cpp-build-tools/>, and in the installer
+   tick **Desktop development with C++**.
+2. **WebView2**: already included in Windows 11 and up-to-date Windows 10. If it's missing,
+   install the *Evergreen Bootstrapper* from
+   <https://developer.microsoft.com/microsoft-edge/webview2/>.
+3. **Rust**: download and run `rustup-init.exe` from <https://rustup.rs> and accept the
+   defaults (the MSVC toolchain).
+4. **Node.js 22+**: the LTS installer from <https://nodejs.org>.
+
+Or, from PowerShell with winget (still tick *Desktop development with C++* when the
+Build Tools installer opens):
+
+```powershell
+winget install Microsoft.VisualStudio.2022.BuildTools Rustlang.Rustup OpenJS.NodeJS.LTS
+```
+
+Open a **new** terminal afterwards so `cargo` and `npm` are on your PATH, then build as
+above.
+
+**Build output** (in `src-tauri\target\release\`)
+
+| File | What it is | `--bundles` |
+| --- | --- | --- |
+| `authorbox.exe` | The app itself; runs in place | |
+| `bundle\nsis\*-setup.exe` | Installer (recommended) | `nsis` |
+| `bundle\msi\*.msi` | Windows Installer package | `msi` |
+
+Building the `.msi` needs Windows' optional **VBScript** feature, which newer Windows 11
+builds no longer turn on by default. If the MSI step fails, use
+`npm run tauri build -- --bundles nsis`.
+
+**Install**: double-click the `-setup.exe` (or the `.msi`) and follow the installer.
+AuthorBox is then in the Start menu, and uninstalls from **Settings → Apps**.
+
+The installer isn't code-signed. Installers you build yourself run normally, but on
+another PC, Windows SmartScreen may show *"Windows protected your PC"*: click
+**More info → Run anyway**.
+
+### Updating
+
+Pull the latest code, rebuild, and install the new package over the old one; your
+projects are ordinary folders and aren't touched.
 
 ### Try it without installing
 
@@ -117,8 +211,8 @@ desktop build for actual writing.
 npm install
 npm run dev        # browser build at http://localhost:1420 (projects stored in localStorage)
 npm run tauri dev  # desktop app with hot reload (needs the prerequisites above)
-npm test           # vitest: markdown round-trip, link index, link picker
+npm test           # vitest: markdown round-trip, link index, link picker, UI smoke test
 npm run check      # typecheck
 ```
 
-Stack: Tauri 2, React 19, TypeScript, TipTap 3 (ProseMirror), zustand, marked.
+Stack: Tauri 2, Preact, TypeScript, TipTap 3 (ProseMirror), zustand, marked.

@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect } from "preact/hooks";
 import { actions, useStore } from "./store";
 import { Editor } from "./editor/Editor";
 import { Binder } from "./ui/Binder";

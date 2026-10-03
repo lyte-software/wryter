@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "preact/hooks";
 import { actions, useStore } from "../store";
 import { namesOf } from "../project/links";
 import { sectionFor } from "../project/model";
@@ -24,16 +24,18 @@ export function QuickOpen() {
   }, [project.docs, query]);
 
   const close = () => actions.setQuickOpen(false);
+  const input = useRef<HTMLInputElement>(null);
+  useEffect(() => input.current?.focus(), []);
 
   return (
     <div className="overlay" onMouseDown={close}>
       <div className="palette" onMouseDown={(e) => e.stopPropagation()}>
         <input
-          autoFocus
+          ref={input}
           placeholder="Go to chapter, character, place…"
           value={query}
-          onChange={(e) => {
-            setQuery(e.target.value);
+          onInput={(e) => {
+            setQuery(e.currentTarget.value);
             setIndex(0);
           }}
           onKeyDown={(e) => {
