@@ -2,10 +2,10 @@ import type { DirEntry, FS } from "./types";
 
 /**
  * A flat path -> contents map, optionally persisted to localStorage. Used
- * when AuthorBox runs in a plain browser (`npm run dev`) and in tests.
+ * when the app runs in a plain browser (`npm run dev`) and in tests.
  * Directories are implicit: a path is a directory if any file lives under it.
  */
-export function createMemoryFS(storageKey?: string): FS {
+export function createMemoryFS(storageKey?: string, library: string | null = null): FS {
   let files: Record<string, string> = {};
   const dirs = new Set<string>();
 
@@ -85,8 +85,12 @@ export function createMemoryFS(storageKey?: string): FS {
       }
       persist();
     },
+    canPickFolder: false,
     async pickFolder() {
       return null;
+    },
+    async library() {
+      return library;
     },
   };
 }

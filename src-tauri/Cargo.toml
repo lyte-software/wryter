@@ -1,12 +1,14 @@
 [package]
-name = "authorbox"
+name = "wryter"
 version = "0.1.0"
 description = "A focused writing app with linked characters, places and items"
 authors = ["Rogue Wolf"]
+license = "MIT"
 edition = "2021"
 
 [lib]
-name = "authorbox_lib"
+# Fixed internal name, so renaming the app never touches Rust code.
+name = "app_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]

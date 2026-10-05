@@ -3,6 +3,7 @@ import { h, render } from "preact";
 import { act } from "preact/test-utils";
 import { App } from "./App";
 import { actions, useStore } from "./store";
+import { SAMPLE_TITLE } from "./sample";
 
 /** Smoke test: the whole UI mounts and the main flows work in a DOM. */
 
@@ -53,6 +54,15 @@ describe("app", () => {
     expect(useStore.getState().theme).toBe("programmer");
     expect(document.documentElement.dataset.theme).toBe("programmer");
     await act(() => actions.setTheme("light"));
+  });
+
+  it("lists library projects on the welcome screen where there's no folder picker", async () => {
+    await openSample();
+    await act(() => actions.closeProject());
+    const heading = await until(() => $(".recents h2"));
+    expect(heading.textContent).toBe("Your projects");
+    expect($(".recents strong")!.textContent).toBe(SAMPLE_TITLE);
+    expect([...root().querySelectorAll("button")].some((b) => b.textContent === "Open folder…")).toBe(false);
   });
 
   it("toggles focus mode with Ctrl+Shift+F", async () => {

@@ -1,8 +1,9 @@
 import { create } from "zustand";
+import { storageKey } from "./brand";
 import { fs, join } from "./fs";
 import { createProject, isProject, loadProject, saveDoc, saveProjectFile, writeFiles } from "./project/io";
 import { linkMentions, retargetLinks } from "./project/links";
-import { cleanTitle, docId, sectionFor, type Doc, type DocMeta, type Kind, type Project } from "./project/model";
+import { cleanTitle, docId, PROJECT_FILE, sectionFor, type Doc, type DocMeta, type Kind, type Project } from "./project/model";
 import { SAMPLE_FILES, SAMPLE_TITLE } from "./sample";
 
 export const THEMES = [
@@ -44,7 +45,7 @@ const pending = new Map<string, ReturnType<typeof setTimeout>>();
 const prefs = {
   get<T>(key: string, fallback: T): T {
     try {
-      const v = localStorage.getItem(`authorbox:${key}`);
+      const v = localStorage.getItem(storageKey(key));
       return v === null ? fallback : (JSON.parse(v) as T);
     } catch {
       return fallback;
@@ -52,7 +53,7 @@ const prefs = {
   },
   set(key: string, value: unknown) {
     try {
-      localStorage.setItem(`authorbox:${key}`, JSON.stringify(value));
+      localStorage.setItem(storageKey(key), JSON.stringify(value));
     } catch {
       // Preferences are a convenience; ignore blocked storage.
     }
@@ -146,7 +147,7 @@ export const actions = {
   async openProject(root: string) {
     try {
       await flushAll();
-      if (!(await isProject(fs, root))) throw new Error(`No ${"authorbox.json"} in ${root}`);
+      if (!(await isProject(fs, root))) throw new Error(`No ${PROJECT_FILE} in ${root}`);
       const project = await loadProject(fs, root);
       const first = Object.values(project.docs).find((d) => d.kind === "manuscript");
       set({ project, openId: first?.id ?? null, rev: {}, error: null, save: "saved" });

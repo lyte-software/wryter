@@ -1,10 +1,12 @@
+import { storageKey } from "../brand";
 import { createMemoryFS } from "./memory";
+import { isTauri } from "./platform";
 import { tauriFS } from "./tauri";
 import type { FS } from "./types";
 
-export const isTauri = typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
+export { isMobile, isTauri } from "./platform";
 
-export const fs: FS = isTauri ? tauriFS : createMemoryFS("authorbox:browser-fs");
+export const fs: FS = isTauri ? tauriFS : createMemoryFS(storageKey("browser-fs"), "/browser");
 
 export { join } from "./types";
 export type { FS, DirEntry } from "./types";

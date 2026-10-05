@@ -1,8 +1,8 @@
 /**
- * On-disk format of an AuthorBox project:
+ * On-disk format of a project. The project file is `<slug>.json`, slug from brand.json:
  *
  *   My Novel/
- *     authorbox.json      project title + binder order
+ *     wryter.json         project title + binder order
  *     Manuscript/*.md     chapters / scenes
  *     Characters/*.md     linkable entities ...
  *     Locations/*.md
@@ -13,6 +13,7 @@
  * title IS its filename, so `[[Mara Venn]]` links to Characters/Mara Venn.md
  * (case-insensitive), or to any document listing "Mara Venn" in `aliases`.
  */
+import { APP_SLUG, FORMER_SLUGS } from "../brand";
 
 export type Kind = "manuscript" | "character" | "location" | "item" | "note";
 
@@ -68,7 +69,9 @@ export interface Project {
   docs: Record<string, Doc>;
 }
 
-export const PROJECT_FILE = "authorbox.json";
+export const PROJECT_FILE = `${APP_SLUG}.json`;
+/** Project files written under the app's former names; renamed to PROJECT_FILE on open. */
+export const FORMER_PROJECT_FILES = FORMER_SLUGS.map((slug) => `${slug}.json`);
 
 export const docId = (kind: Kind, title: string) => `${sectionFor(kind).dir}/${title}.md`;
 

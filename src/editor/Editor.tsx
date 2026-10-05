@@ -135,7 +135,10 @@ function HoverCard({ editor }: { editor: TiptapEditor }) {
       if (el) {
         clearTimeout(hideTimer.current);
         setHover({ target: el.dataset.target ?? "", el, rect: el.getBoundingClientRect() });
-      } else if (!(e.target as HTMLElement).closest?.(".hover-card")) {
+      } else if ((e.target as HTMLElement).closest?.(".hover-card")) {
+        // Crossing the gap from link to card started a hide; reaching the card cancels it.
+        clearTimeout(hideTimer.current);
+      } else {
         clearTimeout(hideTimer.current);
         hideTimer.current = setTimeout(() => setHover(null), 200);
       }

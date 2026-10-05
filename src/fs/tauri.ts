@@ -1,6 +1,8 @@
 import * as fs from "@tauri-apps/plugin-fs";
 import { open } from "@tauri-apps/plugin-dialog";
-import type { FS } from "./types";
+import { documentDir } from "@tauri-apps/api/path";
+import { isMobile } from "./platform";
+import { join, type FS } from "./types";
 
 export const tauriFS: FS = {
   kind: "tauri",
@@ -14,8 +16,18 @@ export const tauriFS: FS = {
   mkdir: (path) => fs.mkdir(path, { recursive: true }),
   remove: (path) => fs.remove(path, { recursive: true }),
   rename: (from, to) => fs.rename(from, to),
+  // The dialog plugin has no folder picker on Android or iOS.
+  canPickFolder: !isMobile,
   async pickFolder(title) {
+    if (isMobile) return null;
     const picked = await open({ directory: true, multiple: false, title });
     return typeof picked === "string" ? picked : null;
+  },
+  async library() {
+    if (!isMobile) return null;
+    // Already app-specific on both platforms; Files shows it under the app's name in "On My iPhone".
+    const dir = join(await documentDir());
+    await fs.mkdir(dir, { recursive: true });
+    return dir;
   },
 };

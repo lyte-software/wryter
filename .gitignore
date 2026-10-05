@@ -5,3 +5,5 @@ src-tauri/gen
 *.log
 .DS_Store
 package-lock.json
+build/.env
+build/out

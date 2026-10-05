@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- Merged into the generated iOS Info.plist. Shows the app's Documents folder, where
+     projects live on iOS, in the Files app under "On My iPhone" and the app's name, so they can be
+     copied out, backed up or edited by other apps. -->
+<plist version="1.0">
+<dict>
+  <key>UIFileSharingEnabled</key>
+  <true/>
+  <key>LSSupportsOpeningDocumentsInPlace</key>
+  <true/>
+</dict>
+</plist>

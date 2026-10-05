@@ -1,8 +1,10 @@
+import { PROJECT_FILE } from "./project/model";
+
 /** A small bundled project so first-run users have something to explore. */
 export const SAMPLE_TITLE = "The Lantern Road";
 
 export const SAMPLE_FILES: Record<string, string> = {
-  "authorbox.json": JSON.stringify(
+  [PROJECT_FILE]: JSON.stringify(
     {
       version: 1,
       title: SAMPLE_TITLE,
