@@ -3,6 +3,8 @@ import brand from "../brand.json";
 import html from "../index.html?raw";
 import pkg from "../package.json";
 import cargo from "../src-tauri/Cargo.toml?raw";
+import lock from "../src-tauri/Cargo.lock?raw";
+import VERSION from "../VERSION?raw";
 import conf from "../src-tauri/tauri.conf.json";
 import { APP_SLUG, FORMER_SLUGS, storageKey } from "./brand";
 
@@ -16,6 +18,15 @@ describe("brand.json", () => {
 
     expect(cargo).toMatch(new RegExp(`\\[package\\]\\nname = "${brand.slug}"\\n`));
     expect(html).toContain(`<title>${brand.name}</title>`);
+  });
+
+  it("and VERSION is copied too", () => {
+    const version = VERSION.trim();
+    expect(version).toMatch(/^\d+\.\d+\.\d+$/);
+    expect(pkg.version).toBe(version);
+    expect(conf.version).toBe("../package.json");
+    expect(cargo).toMatch(new RegExp(`\\[package\\][^[]*?\\nversion = "${version}"\\n`));
+    expect(lock).toContain(`[[package]]\nname = "${brand.slug}"\nversion = "${version}"\n`);
   });
 
   it("doesn't list the current slug as a former one", () => {

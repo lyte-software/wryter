@@ -12,16 +12,45 @@ type check and tests, builds, and drops the result in `build/out/<version>/<plat
 | `android.sh` | Linux or Mac | Signed `.aab` for Play, signed `.apk` for sideloading. `--upload` sends the `.aab` to Play |
 | `macos.sh` | Mac | Notarized universal `.dmg` (`--dmg`) and Mac App Store `.pkg` (`--appstore`). `--upload` sends the `.pkg` |
 | `ios.sh` | Mac | App Store `.ipa`. `--upload` sends it to App Store Connect, where it shows up in TestFlight |
-| `version.sh` | either | Prints or bumps the version (`patch`, `minor`, `major` or `x.y.z`) |
+| `version.sh` | either | Prints or bumps the version (`patch`, `minor`, `major` or `x.y.z`) without committing |
 
-A typical release:
+The version lives in `VERSION` at the repo root. `npm run brand` copies it into
+`package.json` (which `tauri.conf.json` reads) and `Cargo.toml`, and `src/brand.test.ts`
+fails if they drift.
+
+## GitHub Actions
+
+`.github/workflows/build.yml` builds the desktop apps on GitHub's machines, so you don't
+need a Mac or a Windows PC:
+
+- **Push a version tag** and it runs the tests, then builds Linux (`.deb`, `.rpm`,
+  `.AppImage`), Windows (`-setup.exe`) and macOS (universal `.dmg`) and attaches them to
+  a **draft** release. Check it on the Releases page, then press Publish.
+
+  ```sh
+  /tag-version minor              # in Claude Code
+  git push && git push --tags
+  ```
+
+  The tag must match `VERSION`, or the run stops before building.
+- **Actions tab > Build > Run workflow** makes the same builds without a release. Download
+  them from the run's page.
+
+These builds are unsigned (SmartScreen and Gatekeeper warn once; the release notes say
+how to get past that). Signed macOS builds and the phone apps still come from the
+scripts above.
+
+A typical release, on master with everything committed:
 
 ```sh
-build/version.sh patch          # stores reject a version they've already seen
-git commit -am "Release $(build/version.sh)"
-build/release.sh --upload       # on the Linux box: linux, windows, android
-build/release.sh --upload       # then on the Mac: macos, ios
+/tag-version patch              # in Claude Code: bumps VERSION, syncs, commits, tags vX.Y.Z
+git push && git push --tags     # GitHub builds the desktop apps into a draft release
+build/release.sh --upload       # phones: on the Linux box (android), then the Mac (ios)
 ```
+
+Stores reject a version they've already seen, so every store upload needs a bump.
+`/tag-version` runs `.tag-version-hook` after writing VERSION, which is what copies the
+new version into package.json and Cargo.toml before the commit.
 
 Uploads go out as drafts / TestFlight builds. Nothing reaches users until you press
 the button in Play Console or App Store Connect.

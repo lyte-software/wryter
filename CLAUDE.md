@@ -69,6 +69,11 @@ the mobile library folder, so only do that before release.
 
 ## Commands
 
+Version: `VERSION` is the source of truth. Release with `/tag-version major|minor|patch`
+on master (commits and tags `vX.Y.Z`; `.tag-version-hook` runs `npm run brand`'s script
+to sync package.json and Cargo.toml into that commit). Pushing the tag triggers
+`.github/workflows/build.yml`. `build/version.sh` bumps without committing.
+
 Tests: `preact/compat` is loaded (TipTap needs it), so `onBlur` / `onFocus` listen
 for `focusout` / `focusin`. Dispatch those in UI tests, not `blur`.
 

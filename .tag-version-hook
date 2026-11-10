@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# Run by /tag-version after it writes VERSION, before it commits. Copies the new version
+# into package.json, Cargo.toml and Cargo.lock so the release commit holds all of them.
+set -euo pipefail
+cd "$(dirname "$0")"
+node build/brand.mjs

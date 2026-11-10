@@ -32,8 +32,9 @@ load_env() {
   fi
 }
 
+# VERSION is the source of truth (npm run brand copies it into package.json and Cargo.toml).
 version() {
-  node -p "require('$ROOT/package.json').version"
+  echo "$(tr -d '[:space:]' < "$ROOT/VERSION")"
 }
 
 # The app's name lives in brand.json. Use these instead of spelling it out.
