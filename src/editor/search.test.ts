@@ -1,10 +1,18 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { Editor } from "@tiptap/core";
 import { baseExtensions } from "./extensions";
 import { jsonToMarkdown, markdownToHtml } from "./markdown";
 import { replaceAll, replaceCurrent, Search, searchState, setSearch, step } from "./search";
 
-const editorFor = (md: string) => new Editor({ extensions: [...baseExtensions(), Search], content: markdownToHtml(md) });
+// Destroyed after each test, or ProseMirror's DOM observer timer can fire after jsdom is gone.
+const editors: Editor[] = [];
+afterEach(() => editors.splice(0).forEach((e) => e.destroy()));
+
+function editorFor(md: string) {
+  const editor = new Editor({ extensions: [...baseExtensions(), Search], content: markdownToHtml(md) });
+  editors.push(editor);
+  return editor;
+}
 const md = (editor: Editor) => jsonToMarkdown(editor.getJSON());
 const selected = (editor: Editor) => editor.state.doc.textBetween(editor.state.selection.from, editor.state.selection.to);
 

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { Editor } from "@tiptap/core";
 import { TextSelection } from "@tiptap/pm/state";
 import { baseExtensions } from "./extensions";
@@ -8,8 +8,14 @@ import type { Doc } from "../project/model";
 
 const henry = { id: "c1", kind: "character", title: "Henry Bob", body: "", meta: {} } as unknown as Doc;
 
+// Destroyed after each test, or ProseMirror's DOM observer timer can fire after jsdom is gone.
+const editors: Editor[] = [];
+afterEach(() => editors.splice(0).forEach((e) => e.destroy()));
+
 function editorWith(md: string) {
-  return new Editor({ extensions: baseExtensions(), content: markdownToHtml(md) });
+  const editor = new Editor({ extensions: baseExtensions(), content: markdownToHtml(md) });
+  editors.push(editor);
+  return editor;
 }
 
 /** Select the first occurrence of `text` (plus `extra` trailing chars). */
