@@ -2,7 +2,7 @@
  * On-disk format of a project. The project file is `<slug>.json`, slug from brand.json:
  *
  *   My Novel/
- *     wryter.json         project title + binder order
+ *     wryter.json         title, binder order, word goals + today's starting count, export choices
  *     Manuscript/*.md     chapters / scenes
  *     Characters/*.md     linkable entities ...
  *     Locations/*.md
@@ -74,6 +74,15 @@ export interface ProjectFile {
   order: Record<string, string[]>;
   /** Last export's choices, so the next one starts there. */
   export?: Partial<ExportSettings>;
+  /** Word goals: per day, and for the whole manuscript. */
+  goals?: Goals;
+  /** Manuscript word count when today began, for "words today". */
+  today?: { date: string; start: number };
+}
+
+export interface Goals {
+  daily?: number;
+  total?: number;
 }
 
 export interface Project {

@@ -6,11 +6,13 @@ import { Inspector } from "./ui/Inspector";
 import { StatusBar } from "./ui/StatusBar";
 import { QuickOpen } from "./ui/QuickOpen";
 import { ExportDialog } from "./ui/ExportDialog";
+import { Outline } from "./ui/Outline";
 import { Welcome } from "./ui/Welcome";
 
 export function App() {
-  const { project, openId, focus, theme, quickOpen, exportOpen } = useStore();
-  const doc = project && openId ? project.docs[openId] ?? null : null;
+  const { project, openId, focus, theme, quickOpen, exportOpen, view } = useStore();
+  const outline = view === "outline";
+  const doc = project && openId && !outline ? project.docs[openId] ?? null : null;
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
@@ -19,13 +21,16 @@ export function App() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const mod = e.ctrlKey || e.metaKey;
-      if (mod && e.shiftKey && e.key.toLowerCase() === "f") {
+      if (mod && e.shiftKey && e.key.toLowerCase() === "o" && useStore.getState().project) {
+        e.preventDefault();
+        void actions.setView(useStore.getState().view === "outline" ? "doc" : "outline");
+      } else if (mod && e.shiftKey && e.key.toLowerCase() === "f") {
         e.preventDefault();
         actions.setFocus(!useStore.getState().focus);
       } else if (mod && e.key.toLowerCase() === "p" && useStore.getState().project) {
         e.preventDefault();
         actions.setQuickOpen(true);
-      } else if (mod && !e.shiftKey && (e.key.toLowerCase() === "f" || e.key.toLowerCase() === "h") && useStore.getState().openId) {
+      } else if (mod && !e.shiftKey && (e.key.toLowerCase() === "f" || e.key.toLowerCase() === "h") && useStore.getState().openId && useStore.getState().view === "doc") {
         e.preventDefault();
         // Start from the selected words, when they're in the page and on one line.
         const inPage = document.activeElement?.closest(".ProseMirror");
@@ -58,7 +63,9 @@ export function App() {
     <div className={`workspace${focus ? " focus" : ""}`}>
       <Binder />
       <main className="center">
-        {doc ? (
+        {outline ? (
+          <Outline />
+        ) : doc ? (
           <Editor doc={doc} />
         ) : (
           <div className="empty-state">Pick something from the binder, or press Ctrl+P.</div>

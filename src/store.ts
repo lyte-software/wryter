@@ -5,6 +5,7 @@ import { createProject, docFromText, docText, isProject, listDocIds, loadProject
 import { linkMentions, retargetLinks } from "./project/links";
 import { readDisk, reconcile, relativeId } from "./project/sync";
 import { compile } from "./export/compile";
+import { localDate, manuscriptWords, rollToday } from "./project/goals";
 import {
   cleanTitle,
   docId,
@@ -13,6 +14,7 @@ import {
   type Doc,
   type DocMeta,
   type ExportSettings,
+  type Goals,
   type Kind,
   type Project,
   type ProjectFile,
@@ -64,6 +66,8 @@ interface State {
   conflicts: Record<string, string>;
   quickOpen: boolean;
   exportOpen: boolean;
+  /** The centre column: the open doc, or the manuscript outline. */
+  view: "doc" | "outline";
   /** The find bar in the open doc; null when closed. */
   find: Find | null;
   recents: Recent[];
@@ -111,6 +115,7 @@ export const useStore = create<State>(() => ({
   conflicts: {},
   quickOpen: false,
   exportOpen: false,
+  view: "doc",
   find: null,
   recents: prefs.get<Recent[]>("recents", []),
 }));
@@ -160,6 +165,16 @@ async function writeKnown(root: string, id: string, text: string) {
 async function writeProjectFile() {
   const p = get().project;
   if (p) await writeKnown(p.root, PROJECT_FILE, projectFileText(p.file)).catch(fail);
+}
+
+/** Start a new "words today" baseline the first time the project is used each day. */
+function rollIfNewDay() {
+  const p = get().project;
+  if (!p || p.file.today?.date === localDate()) return;
+  const today = rollToday(p.file, manuscriptWords(p));
+  if (!today) return;
+  set({ project: { ...p, file: { ...p.file, today } } });
+  void writeProjectFile();
 }
 
 const isConflicted = (id: string) => id in get().conflicts;
@@ -318,8 +333,9 @@ export const actions = {
       const first = Object.values(project.docs).find((d) => d.kind === "manuscript");
       known.clear();
       for (const [id, text] of texts) known.set(id, text);
-      set({ project, openId: first?.id ?? null, rev: {}, conflicts: {}, find: null, error: null, save: "saved" });
+      set({ project, openId: first?.id ?? null, rev: {}, conflicts: {}, find: null, view: "doc", error: null, save: "saved" });
       rememberRecent(project);
+      rollIfNewDay();
       await startWatching(root);
     } catch (err) {
       fail(err);
@@ -348,7 +364,7 @@ export const actions = {
     await flushAll();
     stopWatching();
     known.clear();
-    set({ project: null, openId: null, conflicts: {}, find: null });
+    set({ project: null, openId: null, conflicts: {}, find: null, view: "doc" });
   },
 
   /** Check the project folder for changes made by other apps. */
@@ -384,7 +400,7 @@ export const actions = {
   async openDoc(id: string) {
     const prev = get().openId;
     if (prev && prev !== id) await flush(prev);
-    set({ openId: id, quickOpen: false, find: prev === id ? get().find : null });
+    set({ openId: id, quickOpen: false, view: "doc", find: prev === id ? get().find : null });
   },
 
   /** Open (or refocus) the find bar in the open doc. Keeps the current query unless given one. */
@@ -419,6 +435,8 @@ export const actions = {
     const doc = get().project?.docs[id];
     // A doc may have been renamed or deleted while an editor flush was in flight.
     if (!doc || doc.body === body) return;
+    // Before the edit, so a day's first words count toward that day.
+    if (doc.kind === "manuscript") rollIfNewDay();
     patchDocs((docs) => (docs[id] = { ...docs[id], body }));
     scheduleSave(id);
   },
@@ -564,6 +582,23 @@ export const actions = {
     set({ quickOpen });
   },
 
+  async setGoals(goals: Goals) {
+    const p = get().project;
+    if (!p) return;
+    const clean: Goals = {};
+    if (goals.daily) clean.daily = goals.daily;
+    if (goals.total) clean.total = goals.total;
+    set({ project: { ...p, file: { ...p.file, goals: Object.keys(clean).length ? clean : undefined } } });
+    await writeProjectFile();
+  },
+
+  /** Show the manuscript outline, or go back to the open doc. */
+  async setView(view: "doc" | "outline") {
+    const openId = get().openId;
+    if (view === "outline" && openId) await flush(openId);
+    set({ view, find: null, quickOpen: false });
+  },
+
   setExportOpen(exportOpen: boolean) {
     set({ exportOpen });
   },
@@ -592,5 +627,7 @@ if (typeof window !== "undefined") {
   // Coming back from another app is when outside edits are most likely, and the only
   // check on platforms without a folder watcher.
   window.addEventListener("focus", () => void (get().project && sync()));
+  // Left open past midnight: start the new day's count.
+  setInterval(rollIfNewDay, 60_000);
   document.addEventListener("visibilitychange", () => void (document.visibilityState === "visible" && get().project && sync()));
 }

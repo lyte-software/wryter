@@ -498,8 +498,91 @@ button.mention:hover { border-color: var(--ink-faint); }
 .statusbar select { width: auto; border: 0; background: none; padding: 2px 4px; font-size: 12px; color: inherit; cursor: pointer; }
 .statusbar select:hover { background: var(--hover); color: var(--ink); }
 .statusbar option { background: var(--page); color: var(--ink); }
+.statusbar button.muted:hover { color: var(--ink); }
+
+/* Daily goal: a hairline that stands in for the status bar's top border. */
+.goal-bar {
+  position: relative;
+  height: 3px;
+  flex: none;
+  background: color-mix(in srgb, var(--line) 70%, transparent);
+}
+.goal-fill {
+  position: absolute;
+  inset: 0;
+  background: var(--accent);
+  opacity: 0.6;
+  transform-origin: left;
+  transition: transform 0.6s ease, opacity 0.6s ease;
+}
+.goal-bar.met .goal-fill { opacity: 1; }
+.goal-bar + .statusbar { border-top-color: transparent; }
+@media (prefers-reduced-motion: reduce) { .goal-fill { transition: none; } }
+.statusbar .goal-met { color: var(--accent); }
+.goals-anchor { position: relative; display: flex; gap: 8px; }
+.goals {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  left: 0;
+  z-index: 30;
+  display: grid;
+  gap: 12px;
+  width: 260px;
+  padding: 14px;
+  font-size: 13px;
+  color: var(--ink);
+  background: var(--page);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+}
+.goals .hint { margin: 0; }
+.goals .small-btn { justify-self: end; }
 .save-saving { color: var(--ink-faint); }
 .save-error { color: var(--character); font-weight: 600; }
+
+/* ---------------------------------------------------------------- outline */
+.outline { max-width: 48rem; margin: 0 auto; padding: 56px 48px 30vh; }
+.outline-head h1 { font: 600 2rem/1.2 var(--font-prose); margin: 0 0 6px; }
+.outline-head .hint { margin: 0 0 28px; font-size: 13px; }
+.outline ol { list-style: none; margin: 0 0 20px; padding: 0; }
+.outline li { border-top: 1px solid var(--line); }
+.outline li:last-child { border-bottom: 1px solid var(--line); }
+.outline li.dragging { opacity: 0.4; }
+.outline-row { display: flex; gap: 14px; padding: 14px 4px; cursor: grab; }
+.outline-num { width: 1.6em; flex: none; text-align: right; color: var(--ink-faint); font: 400 1rem/1.6 var(--font-prose); }
+.outline-main { flex: 1; min-width: 0; display: grid; gap: 4px; }
+.outline-line { display: flex; align-items: center; gap: 12px; }
+.outline-title { font: 600 1.05rem/1.6 var(--font-prose); text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.outline-title:hover { color: var(--accent); }
+.outline-status {
+  width: auto;
+  margin-left: auto;
+  padding: 1px 4px;
+  font-size: 12px;
+  border-color: transparent;
+  background: none;
+  color: var(--ink-faint);
+  cursor: pointer;
+}
+.outline-status:hover { border-color: var(--line); }
+.outline-status[data-status="revised"] { color: var(--item); }
+.outline-status[data-status="final"] { color: var(--location); }
+.outline-words { flex: none; min-width: 6.5em; text-align: right; font-size: 12px; color: var(--ink-faint); }
+.outline-synopsis {
+  resize: none;
+  overflow: hidden;
+  padding: 2px 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  font: 400 0.95rem/1.5 var(--font-prose);
+  color: var(--ink-soft);
+}
+.outline-synopsis:focus { color: var(--ink); }
+.outline-synopsis::placeholder { color: var(--ink-faint); font-style: italic; }
+.icon-btn[aria-pressed="true"] { color: var(--accent); }
+.outline-btn { font-size: 13px; }
 
 /* ---------------------------------------------------------------- find */
 /* Sticky but zero-height, so opening the bar never moves the page. */
@@ -551,6 +634,9 @@ button.mention:hover { border-color: var(--ink-faint); }
 .workspace.focus .binder, .workspace.focus .inspector { display: none; }
 .workspace.focus .statusbar { opacity: 0; }
 .workspace.focus .statusbar:hover { opacity: 1; }
+.workspace.focus .goal-bar { background: transparent; }
+.workspace.focus .goal-fill { opacity: 0.35; }
+.workspace.focus .goal-bar.met .goal-fill { opacity: 0.6; }
 .workspace.focus .page { padding-top: 22vh; }
 .workspace.focus .doc-title { opacity: 0.35; transition: opacity 0.3s; }
 .workspace.focus .doc-title:focus { opacity: 1; }

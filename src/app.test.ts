@@ -118,6 +118,76 @@ describe("app", () => {
     await until(() => $('.find-bar input[aria-label="Replace with"]'));
   });
 
+  it("sets a daily goal from the status bar", async () => {
+    await openSample();
+    const today = [...root().querySelectorAll(".statusbar button")].find((b) => b.textContent!.startsWith("Today")) as HTMLElement;
+    await act(() => today.click());
+    const input = await until(() => $<HTMLInputElement>(".goals input"));
+    input.value = "1,500";
+    await act(() => void input.dispatchEvent(new Event("input", { bubbles: true })));
+    await act(() => void $(".goals")!.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true })));
+    expect($(".goals")).toBeNull();
+    await until(() => useStore.getState().project!.file.goals);
+    expect(useStore.getState().project!.file.goals).toEqual({ daily: 1500 });
+    expect(today.textContent).toMatch(/^Today \d[\d,]* \/ 1,500/);
+
+    // The goal bar fills as words are added and drains as they're cut.
+    const bar = await until(() => $<HTMLElement>(".goal-bar"));
+    const fill = () => bar.querySelector<HTMLElement>(".goal-fill")!.style.transform;
+    const chapter = useStore.getState().openId!;
+    const body = useStore.getState().project!.docs[chapter].body;
+    await act(() => actions.updateBody(chapter, body + "\n\n" + "word ".repeat(750)));
+    expect(bar.getAttribute("aria-valuenow")).toBe("750");
+    expect(fill()).toBe("scaleX(0.5)");
+    await act(() => actions.updateBody(chapter, body + "\n\n" + "word ".repeat(1600)));
+    expect(fill()).toBe("scaleX(1)");
+    expect(bar.classList.contains("met")).toBe(true);
+    await act(() => actions.updateBody(chapter, body));
+    expect(fill()).toBe("scaleX(0)");
+
+    await act(() => actions.setGoals({}));
+    expect($(".goal-bar")).toBeNull();
+  });
+
+  it("plans in the outline: synopsis, status, reorder, open", async () => {
+    await openSample();
+    const chapters = () => [...root().querySelectorAll<HTMLElement>(".outline-title")].map((b) => b.textContent);
+    await act(() => $<HTMLElement>(".outline-btn")!.click());
+    await until(() => $(".outline"));
+    expect($(".inspector")).toBeNull();
+    const before = chapters();
+    expect(before.length).toBeGreaterThan(1);
+
+    const synopsis = $<HTMLTextAreaElement>(".outline-synopsis")!;
+    synopsis.value = "Mara crosses the river.";
+    await act(() => void synopsis.dispatchEvent(new Event("input", { bubbles: true })));
+    // preact/compat (loaded for TipTap) listens for focusout, as React does.
+    await act(() => void synopsis.dispatchEvent(new FocusEvent("focusout", { bubbles: true })));
+    const first = Object.values(useStore.getState().project!.docs).find((d) => d.title === before[0])!;
+    expect(first.meta.synopsis).toBe("Mara crosses the river.");
+
+    const status = $<HTMLSelectElement>(".outline-status")!;
+    status.value = "revised";
+    await act(() => void status.dispatchEvent(new Event("change", { bubbles: true })));
+    expect(useStore.getState().project!.docs[first.id].meta.status).toBe("revised");
+
+    // Drag the second chapter above the first.
+    const rows = root().querySelectorAll<HTMLElement>(".outline li");
+    await act(() => void rows[1].querySelector(".outline-num")!.dispatchEvent(new MouseEvent("mousedown", { bubbles: true })));
+    await act(() => void rows[1].dispatchEvent(new Event("dragstart", { bubbles: true })));
+    await act(() => void rows[0].dispatchEvent(new Event("drop", { bubbles: true })));
+    expect(chapters().slice(0, 2)).toEqual([before[1], before[0]]);
+
+    await act(() => root().querySelector<HTMLElement>(".outline-title")!.click());
+    await until(() => !$(".outline") && $(".ProseMirror"));
+
+    const toggle = () => act(() => void window.dispatchEvent(new KeyboardEvent("keydown", { key: "O", ctrlKey: true, shiftKey: true })));
+    await toggle();
+    await until(() => $(".outline"));
+    await toggle();
+    await until(() => !$(".outline") && $(".ProseMirror"));
+  });
+
   it("toggles focus mode with Ctrl+Shift+F", async () => {
     await openSample();
     const press = () => void window.dispatchEvent(new KeyboardEvent("keydown", { key: "F", ctrlKey: true, shiftKey: true }));

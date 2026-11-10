@@ -22,7 +22,8 @@ export function Binder() {
 
 function BinderSection({ section }: { section: Section }) {
   const project = useStore((s) => s.project)!;
-  const openId = useStore((s) => s.openId);
+  const openId = useStore((s) => (s.view === "doc" ? s.openId : null));
+  const outline = useStore((s) => s.view === "outline");
   const [collapsed, setCollapsed] = useState(false);
   const [dragging, setDragging] = useState<string | null>(null);
   const docs = docsIn(project, section.kind);
@@ -43,6 +44,17 @@ function BinderSection({ section }: { section: Section }) {
           {section.label}
           <span className="count">{docs.length}</span>
         </button>
+        {section.kind === "manuscript" && (
+          <button
+            className="icon-btn outline-btn"
+            title="Outline (Ctrl+Shift+O)"
+            aria-label="Outline"
+            aria-pressed={outline}
+            onClick={() => void actions.setView(outline ? "doc" : "outline")}
+          >
+            ☰
+          </button>
+        )}
         <button
           className="icon-btn"
           title={`New ${section.singular.toLowerCase()}`}

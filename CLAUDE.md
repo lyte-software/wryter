@@ -61,11 +61,16 @@ the mobile library folder, so only do that before release.
   stored-only zip writer, so no compression dependency). Pure, unit-tested. Export
   choices persist in `wryter.json` under `export`. A new block or mark in the editor
   needs a case in `docx.ts` too.
-- `src/ui/`: Binder, Inspector, StatusBar, QuickOpen, Welcome, ExportDialog.
+- `src/ui/`: Binder, Inspector, StatusBar (+ goals popover), QuickOpen, Welcome,
+  ExportDialog, Outline. The centre column is `view` in the store: the open doc or
+  the outline.
 - `src-tauri/`: minimal shell; fs + dialog plugins. FS scope is `$HOME/**`
   (`capabilities/default.json`).
 
 ## Commands
+
+Tests: `preact/compat` is loaded (TipTap needs it), so `onBlur` / `onFocus` listen
+for `focusout` / `focusin`. Dispatch those in UI tests, not `blur`.
 
 `npm test`, `npm run check`, `npm run brand` (after editing `brand.json`), `npm run dev`
 (browser), `npm run tauri dev` (desktop; needs Rust + webkit2gtk4.1-devel; see README).

@@ -25,6 +25,13 @@ your manuscript, plus characters, locations and items you can link to as you wri
   project, with a snippet of each match. Pick one and it opens with the words highlighted.
   **Find and replace** in the open page with Ctrl+F / Ctrl+H. Searching a name finds
   links to it too; replacing leaves links alone (rename the page to change those).
+- **Outline** (Ctrl+Shift+O, or ☰ on the Manuscript heading): every chapter on one page
+  with its synopsis, status and word count. Edit synopses in place, set statuses, and
+  drag chapters into a new order. Click a title to start writing.
+- **Word goals:** the status bar shows the words you've added to the manuscript today,
+  and the manuscript total. Click either to set a daily goal and a goal for the book.
+  With a daily goal, a thin line above the status bar fills as you write and drains as
+  you cut. It stays, dimmed, in focus mode.
 - **Focus mode** (Ctrl+Shift+F): hides everything but the page and dims all but the
   current paragraph. Light, Sepia, Dark and Programmer themes (status bar).
 
@@ -34,7 +41,7 @@ A project is just a folder. Nothing is locked inside the app:
 
 ```
 The Lantern Road/
-  wryter.json               title + binder order
+  wryter.json               title, binder order, word goals, export choices
   Manuscript/Chapter 1.md
   Characters/Mara Venn.md   ---
                             aliases: [Mara]
