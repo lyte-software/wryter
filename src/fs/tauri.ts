@@ -1,5 +1,5 @@
 import * as fs from "@tauri-apps/plugin-fs";
-import { open } from "@tauri-apps/plugin-dialog";
+import { open, save } from "@tauri-apps/plugin-dialog";
 import { documentDir } from "@tauri-apps/api/path";
 import { isMobile } from "./platform";
 import { join, type FS } from "./types";
@@ -30,4 +30,18 @@ export const tauriFS: FS = {
     await fs.mkdir(dir, { recursive: true });
     return dir;
   },
+  async saveAs(path, data) {
+    let target: string | null = path;
+    if (isMobile) {
+      await fs.mkdir(path.slice(0, path.lastIndexOf("/")), { recursive: true });
+    } else {
+      const ext = path.slice(path.lastIndexOf(".") + 1);
+      // The picked path is added to the fs scope, so it can be outside the home folder.
+      target = await save({ defaultPath: path, filters: [{ name: ext.toUpperCase(), extensions: [ext] }] });
+    }
+    if (target) await fs.writeFile(target, data);
+    return target;
+  },
+  watch: (dir, onChange) =>
+    fs.watch(dir, (event) => onChange(event.paths.map((p) => join(p))), { recursive: true, delayMs: 300 }),
 };

@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "preact/hooks";
 import { EditorContent, useEditor, type Editor as TiptapEditor } from "@tiptap/react";
 import { Focus, Placeholder } from "@tiptap/extensions";
+import { APP_NAME } from "../brand";
 import { actions, useStore } from "../store";
 import { resolverFor } from "../project/links";
 import { sectionFor, type Doc } from "../project/model";
 import { baseExtensions } from "./extensions";
+import { replaceAll, replaceCurrent, Search, searchState, setSearch, step } from "./search";
 import { jsonToMarkdown, linkifyText, markdownToHtml } from "./markdown";
 import {
   describeItem,
@@ -23,7 +25,31 @@ export function Editor({ doc }: { doc: Doc }) {
   const rev = useStore((s) => s.rev[doc.id] ?? 0);
   const raw = useStore((s) => s.raw);
   // Remount when the doc changes underneath us (rename, link-all, ...) or the view mode flips.
-  return <DocEditor key={`${doc.id}#${rev}${raw ? "#raw" : ""}`} doc={doc} rev={rev} raw={raw} />;
+  return (
+    <>
+      <ConflictBanner id={doc.id} />
+      <DocEditor key={`${doc.id}#${rev}${raw ? "#raw" : ""}`} doc={doc} rev={rev} raw={raw} />
+    </>
+  );
+}
+
+/** Shown when another app changed this file while it had edits not yet saved. */
+function ConflictBanner({ id }: { id: string }) {
+  const conflicted = useStore((s) => id in s.conflicts);
+  if (!conflicted) return null;
+  return (
+    <div className="conflict" role="alert">
+      <span>This file was changed outside {APP_NAME} while you were editing it. Saving is paused until you pick a version.</span>
+      <span className="conflict-actions">
+        <button className="small-btn" onClick={() => void actions.resolveConflict(id, "disk")}>
+          Use the other version
+        </button>
+        <button className="small-btn" onClick={() => void actions.resolveConflict(id, "mine")}>
+          Keep mine
+        </button>
+      </span>
+    </div>
+  );
 }
 
 function DocEditor({ doc, rev, raw }: { doc: Doc; rev: number; raw: boolean }) {
@@ -36,6 +62,7 @@ function DocEditor({ doc, rev, raw }: { doc: Doc; rev: number; raw: boolean }) {
       ...baseExtensions({ ...entityLinkOptions, raw }),
       Placeholder.configure({ placeholder }),
       Focus.configure({ mode: "deepest" }),
+      Search,
     ],
     content: markdownToHtml(doc.body, { raw }),
     autofocus: doc.kind === "manuscript" ? "end" : false,
@@ -82,6 +109,7 @@ function DocEditor({ doc, rev, raw }: { doc: Doc; rev: number; raw: boolean }) {
 
   return (
     <div className="editor-scroll">
+      {editor && <FindBar editor={editor} />}
       <article className="page">
         <TitleField doc={doc} />
         <div className="editor-body">
@@ -91,6 +119,105 @@ function DocEditor({ doc, rev, raw }: { doc: Doc; rev: number; raw: boolean }) {
       </article>
       <LinkMenu />
       {editor && picking && <SelectionPicker editor={editor} selected={picking} onClose={() => setPicking(null)} />}
+    </div>
+  );
+}
+
+/** Ctrl+F / Ctrl+H: find and replace in this doc. The query lives in the store. */
+function FindBar({ editor }: { editor: TiptapEditor }) {
+  const find = useStore((s) => s.find);
+  const [, rerender] = useState(0);
+  const [replacement, setReplacement] = useState("");
+  const [done, setDone] = useState<string | null>(null);
+  const input = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const update = () => rerender((n) => n + 1);
+    editor.on("transaction", update);
+    return () => void editor.off("transaction", update);
+  }, [editor]);
+
+  // Highlight whenever the query changes (typing, or a project search result).
+  const open = find !== null;
+  useEffect(() => {
+    if (!editor.isDestroyed) setSearch(editor.view, find?.query ?? "", find?.start ?? 0);
+    setDone(null);
+  }, [editor, open, find?.query, find?.start]);
+
+  useEffect(() => {
+    input.current?.focus();
+    input.current?.select();
+  }, [find?.seq]);
+
+  if (!find || editor.isDestroyed) return null;
+  const { matches, current } = searchState(editor.state);
+  const inLinks = matches.filter((m) => m.inLink).length;
+  const view = editor.view;
+  const close = (e: { preventDefault(): void }) => {
+    e.preventDefault(); // so focus mode doesn't also take this Escape
+    actions.closeFind();
+    editor.commands.focus();
+  };
+
+  return (
+    <div className="find-dock">
+      <div className="find-bar" role="search">
+        <div className="find-row">
+          <input
+            ref={input}
+            placeholder="Find"
+            aria-label="Find"
+            value={find.query}
+            onInput={(e) => actions.setFindQuery(e.currentTarget.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") step(view, e.shiftKey ? -1 : 1);
+              if (e.key === "Escape") close(e);
+            }}
+          />
+          <span className="find-count">{find.query ? (matches.length ? `${current + 1} of ${matches.length}` : "No matches") : ""}</span>
+          <button title="Previous (Shift+Enter)" aria-label="Previous match" onClick={() => step(view, -1)} disabled={!matches.length}>
+            ↑
+          </button>
+          <button title="Next (Enter)" aria-label="Next match" onClick={() => step(view, 1)} disabled={!matches.length}>
+            ↓
+          </button>
+          <button title="Replace (Ctrl+H)" aria-pressed={find.replace} onClick={() => actions.openFind({ replace: !find.replace })}>
+            Replace
+          </button>
+          <button title="Close (Esc)" aria-label="Close find" onClick={close}>
+            ×
+          </button>
+        </div>
+        {find.replace && (
+          <div className="find-row">
+            <input
+              placeholder="Replace with"
+              aria-label="Replace with"
+              value={replacement}
+              onInput={(e) => setReplacement(e.currentTarget.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") replaceCurrent(view, replacement);
+                if (e.key === "Escape") close(e);
+              }}
+            />
+            <button onClick={() => replaceCurrent(view, replacement)} disabled={!matches.length}>
+              Replace
+            </button>
+            <button
+              onClick={() => {
+                const n = replaceAll(view, replacement);
+                setDone(`Replaced ${n}`);
+              }}
+              disabled={matches.length === inLinks}
+            >
+              All
+            </button>
+            <span className="find-count" title="Rename the linked page to change these">
+              {done ?? (inLinks ? `${inLinks} in links, left as they are` : "")}
+            </span>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

@@ -46,10 +46,22 @@ the mobile library folder, so only do that before release.
   backlinks, unlinked mentions, rename rewriting). Unit-tested.
 - `src/store.ts`: zustand store + `actions`. All writes go through here (debounced
   autosave per doc). `rev[id]` is bumped when a doc's body changes outside the editor
-  (rename, link-all); the editor remounts on it and drops stale pending edits.
+  (rename, link-all, an edit made in another app); the editor remounts on it and drops
+  stale pending edits. `known` holds the exact text last read or written per file:
+  a save refuses to overwrite a file that no longer matches it (that becomes a
+  `conflicts` entry), and the folder watcher / window-focus sync (`project/sync.ts`)
+  uses it to tell outside edits from our own writes. Write files through `writeKnown`.
 - `src/editor/`: TipTap setup (`extensions.ts`: `EntityLink` node + `[[` suggestion),
-  `linkMenu.ts` (picker state/search), `Editor.tsx`.
-- `src/ui/`: Binder, Inspector, StatusBar, QuickOpen, Welcome.
+  `linkMenu.ts` (picker state/search), `search.ts` (find/replace plugin: decorations,
+  matches include link labels, replace skips links), `Editor.tsx` (+ `FindBar`).
+  Project-wide text search is `project/search.ts`, shown in QuickOpen; the find bar's
+  state is `find` in the store, so a search result can open a doc pre-searched.
+- `src/export/`: compiling the manuscript (`compile.ts`: chapters, Markdown, HTML;
+  `docx.ts`: Word in standard manuscript format, from marked's tokens; `zip.ts`: a
+  stored-only zip writer, so no compression dependency). Pure, unit-tested. Export
+  choices persist in `wryter.json` under `export`. A new block or mark in the editor
+  needs a case in `docx.ts` too.
+- `src/ui/`: Binder, Inspector, StatusBar, QuickOpen, Welcome, ExportDialog.
 - `src-tauri/`: minimal shell; fs + dialog plugins. FS scope is `$HOME/**`
   (`capabilities/default.json`).
 

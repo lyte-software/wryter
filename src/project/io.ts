@@ -2,6 +2,31 @@ import { join, type FS } from "../fs";
 import { joinFrontmatter, splitFrontmatter } from "./frontmatter";
 import { FORMER_PROJECT_FILES, PROJECT_FILE, SECTIONS, type Doc, type Project, type ProjectFile } from "./model";
 
+/** A doc parsed from its file. `id` is project-relative, e.g. "Characters/Mara Venn.md". */
+export function docFromText(id: string, text: string): Doc {
+  const [dir, name] = id.split("/");
+  const section = SECTIONS.find((s) => s.dir === dir)!;
+  const { meta, body } = splitFrontmatter(text);
+  return { id, kind: section.kind, title: name.slice(0, -3), meta, body };
+}
+
+/** Exactly what `saveDoc` writes for a doc. */
+export const docText = (doc: Doc) => joinFrontmatter(doc.meta, doc.body);
+export const projectFileText = (file: ProjectFile) => JSON.stringify(file, null, 2) + "\n";
+
+/** Project-relative ids of the Markdown files in the project's section folders. */
+export async function listDocIds(fs: FS, root: string): Promise<string[]> {
+  const ids: string[] = [];
+  for (const section of SECTIONS) {
+    const dir = join(root, section.dir);
+    if (!(await fs.exists(dir))) continue;
+    for (const entry of await fs.readDir(dir)) {
+      if (!entry.isDir && entry.name.toLowerCase().endsWith(".md")) ids.push(`${section.dir}/${entry.name}`);
+    }
+  }
+  return ids;
+}
+
 /** The project file `root` actually has: the current name, or one from before a rename. */
 async function projectFileIn(fs: FS, root: string): Promise<string | null> {
   for (const name of [PROJECT_FILE, ...FORMER_PROJECT_FILES]) {
@@ -33,23 +58,21 @@ export async function listProjects(fs: FS, dir: string): Promise<{ root: string;
   return found.sort((a, b) => a.title.localeCompare(b.title));
 }
 
-export async function loadProject(fs: FS, root: string): Promise<Project> {
+/** Loads a project. Pass `texts` to collect each file's raw text by id (the project file under PROJECT_FILE). */
+export async function loadProject(fs: FS, root: string, texts?: Map<string, string>): Promise<Project> {
   // Opening a project saved under a former app name renames its project file.
   const found = await projectFileIn(fs, root);
   if (found && found !== PROJECT_FILE) await fs.rename(join(root, found), join(root, PROJECT_FILE));
-  const file = JSON.parse(await fs.readText(join(root, PROJECT_FILE))) as ProjectFile;
+  const fileText = await fs.readText(join(root, PROJECT_FILE));
+  texts?.set(PROJECT_FILE, fileText);
+  const file = JSON.parse(fileText) as ProjectFile;
   file.order ??= {};
   const docs: Record<string, Doc> = {};
 
-  for (const section of SECTIONS) {
-    const dir = join(root, section.dir);
-    if (!(await fs.exists(dir))) continue;
-    for (const entry of await fs.readDir(dir)) {
-      if (entry.isDir || !entry.name.toLowerCase().endsWith(".md")) continue;
-      const id = `${section.dir}/${entry.name}`;
-      const { meta, body } = splitFrontmatter(await fs.readText(join(root, id)));
-      docs[id] = { id, kind: section.kind, title: entry.name.slice(0, -3), meta, body };
-    }
+  for (const id of await listDocIds(fs, root)) {
+    const text = await fs.readText(join(root, id));
+    texts?.set(id, text);
+    docs[id] = docFromText(id, text);
   }
   return { root, file, docs };
 }
@@ -63,11 +86,11 @@ export async function createProject(fs: FS, root: string, title: string): Promis
 }
 
 export async function saveProjectFile(fs: FS, root: string, file: ProjectFile): Promise<void> {
-  await fs.writeText(join(root, PROJECT_FILE), JSON.stringify(file, null, 2) + "\n");
+  await fs.writeText(join(root, PROJECT_FILE), projectFileText(file));
 }
 
 export async function saveDoc(fs: FS, root: string, doc: Doc): Promise<void> {
-  await fs.writeText(join(root, doc.id), joinFrontmatter(doc.meta, doc.body));
+  await fs.writeText(join(root, doc.id), docText(doc));
 }
 
 /** Write a set of files into `root` (used for the bundled sample project). */

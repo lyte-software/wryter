@@ -4,7 +4,8 @@ import { wordCount, type Doc } from "../project/model";
 
 export function StatusBar({ doc }: { doc: Doc | null }) {
   const project = useStore((s) => s.project)!;
-  const { save, error, focus, raw, theme } = useStore();
+  const { save, error, focus, raw, theme, conflicts } = useStore();
+  const conflicted = Object.keys(conflicts);
   const total = useMemo(
     () => Object.values(project.docs).reduce((n, d) => n + (d.kind === "manuscript" ? wordCount(d.body) : 0), 0),
     [project.docs],
@@ -16,11 +17,20 @@ export function StatusBar({ doc }: { doc: Doc | null }) {
       <span>{doc ? `${words.toLocaleString()} words` : ""}</span>
       <span className="muted">Manuscript {total.toLocaleString()}</span>
       <span className="spacer" />
-      <span className={`save save-${save}`} title={error ?? undefined}>
-        {save === "saving" ? "Saving…" : save === "error" ? "Save failed" : "Saved"}
-      </span>
+      {conflicted.length ? (
+        <button className="save save-error" title="Open the file that changed" onClick={() => void actions.openDoc(conflicted[0])}>
+          Changed on disk{conflicted.length > 1 ? ` (${conflicted.length})` : ""}
+        </button>
+      ) : (
+        <span className={`save save-${save}`} title={error ?? undefined}>
+          {save === "saving" ? "Saving…" : save === "error" ? "Save failed" : "Saved"}
+        </span>
+      )}
       <button onClick={() => actions.setQuickOpen(true)} title="Quick open (Ctrl+P)">
         Go to…
+      </button>
+      <button onClick={() => actions.setExportOpen(true)} title="Export the manuscript (Ctrl+E)">
+        Export…
       </button>
       <select value={theme} onChange={(e) => actions.setTheme(e.currentTarget.value as Theme)} title="Theme" aria-label="Theme">
         {THEMES.map((t) => (

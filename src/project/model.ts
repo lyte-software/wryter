@@ -56,11 +56,24 @@ export interface Doc {
   body: string;
 }
 
+export type ExportFormat = "docx" | "markdown" | "html";
+/** How each chapter starts: its binder title, "Chapter 1, 2…", or no heading. */
+export type ChapterHeadings = "titles" | "numbers" | "none";
+
+export interface ExportSettings {
+  format: ExportFormat;
+  headings: ChapterHeadings;
+  /** For the title page and page headers. */
+  author: string;
+}
+
 export interface ProjectFile {
   version: 1;
   title: string;
   /** Binder order per section dir, as filenames without ".md". */
   order: Record<string, string[]>;
+  /** Last export's choices, so the next one starts there. */
+  export?: Partial<ExportSettings>;
 }
 
 export interface Project {

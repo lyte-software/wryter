@@ -85,6 +85,20 @@ export function createMemoryFS(storageKey?: string, library: string | null = nul
       }
       persist();
     },
+    async saveAs(path, data) {
+      // Kept as a byte string so binary files survive; the browser also downloads it.
+      let bytes = "";
+      for (let i = 0; i < data.length; i += 0x8000) bytes += String.fromCharCode(...data.subarray(i, i + 0x8000));
+      files[path] = bytes;
+      persist();
+      if (typeof document !== "undefined" && typeof URL.createObjectURL === "function") {
+        const url = URL.createObjectURL(new Blob([data as BlobPart]));
+        const a = Object.assign(document.createElement("a"), { href: url, download: path.slice(path.lastIndexOf("/") + 1) });
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+      }
+      return path;
+    },
     canPickFolder: false,
     async pickFolder() {
       return null;

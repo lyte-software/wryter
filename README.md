@@ -15,8 +15,18 @@ your manuscript, plus characters, locations and items you can link to as you wri
 - **Rename-safe:** renaming a character rewrites every link to them across the project.
 - **Raw mode** (status bar): links show as their `[[Henry Bob|shady figure]]` source,
   plain text you can edit directly. The `[[` picker still works. Stays on until you turn it off.
+- **Export** (Ctrl+E, or Export in the status bar): the whole manuscript as one file, in
+  binder order, with links turned back into plain words. *Word* is standard manuscript
+  format (title page with word count, each chapter on a new page, double spaced) for
+  editors and agents. *Markdown* has a Pandoc title block, for making ebooks. *Web page*
+  reads in a browser and prints cleanly to PDF. Character, location, item and note pages
+  are never included.
+- **Search:** Ctrl+P jumps to any page by name and also searches the text of the whole
+  project, with a snippet of each match. Pick one and it opens with the words highlighted.
+  **Find and replace** in the open page with Ctrl+F / Ctrl+H. Searching a name finds
+  links to it too; replacing leaves links alone (rename the page to change those).
 - **Focus mode** (Ctrl+Shift+F): hides everything but the page and dims all but the
-  current paragraph. **Quick open** (Ctrl+P). Light, Sepia, Dark and Programmer themes (status bar).
+  current paragraph. Light, Sepia, Dark and Programmer themes (status bar).
 
 ## Your files are plain Markdown
 
@@ -36,6 +46,11 @@ The Lantern Road/
 
 Links are `[[Mara Venn]]` or `[[Mara Venn|her]]`, the same syntax as Obsidian, so a
 project folder also opens as an Obsidian vault.
+
+You can edit the files in another app while Wryter has the project open. Wryter picks
+up the changes as they happen (or when you switch back to it on phones). It never saves
+over a file that changed since it last read it. If you had unsaved edits in that file,
+it pauses saving and asks which version to keep.
 
 On phones and tablets there's no folder picker, so projects live in the app's own
 documents folder and the welcome screen lists them:

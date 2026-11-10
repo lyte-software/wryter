@@ -1,18 +1,22 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Read and write project folders the writer picks, anywhere in their home directory, plus the documents folder that holds projects on Android and iOS.",
+  "description": "Read and write project folders the writer picks, anywhere in their home directory, and watch them for edits made by other apps, plus the documents folder that holds projects on Android and iOS.",
   "windows": ["main"],
   "permissions": [
     "core:default",
     "dialog:allow-open",
+    "dialog:allow-save",
     "fs:allow-exists",
     "fs:allow-read-text-file",
     "fs:allow-write-text-file",
+    "fs:allow-write-file",
     "fs:allow-read-dir",
     "fs:allow-mkdir",
     "fs:allow-remove",
     "fs:allow-rename",
+    "fs:allow-watch",
+    "fs:allow-unwatch",
     {
       "identifier": "fs:scope",
       "allow": [{ "path": "$HOME" }, { "path": "$HOME/**" }, { "path": "$DOCUMENT" }, { "path": "$DOCUMENT/**" }]

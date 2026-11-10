@@ -17,7 +17,10 @@ const WIKILINK = /\[\[([^\[\]|\n]+?)(?:\|([^\[\]\n]+?))?\]\]/;
 const wikilinkSource = (target: string, label?: string | null) =>
   label && label !== target ? `[[${target}|${label}]]` : `[[${target}]]`;
 
-const wikilink = (raw: boolean): TokenizerAndRendererExtension => ({
+/** How links render: editor nodes, editable `[[source]]` text, or just the words shown (export). */
+type LinkMode = "editor" | "raw" | "plain";
+
+const wikilink = (mode: LinkMode): TokenizerAndRendererExtension => ({
   name: "wikilink",
   level: "inline",
   start: (src) => src.indexOf("[["),
@@ -28,7 +31,8 @@ const wikilink = (raw: boolean): TokenizerAndRendererExtension => ({
   },
   renderer(token) {
     // Raw mode keeps the link as plain, editable text.
-    if (raw) return escapeHtml(wikilinkSource(token.target, token.label));
+    if (mode === "raw") return escapeHtml(wikilinkSource(token.target, token.label));
+    if (mode === "plain") return escapeHtml(token.label ?? token.target);
     const label = token.label ? ` data-label="${escapeHtml(token.label)}"` : "";
     return `<span data-entity-link data-target="${escapeHtml(token.target)}"${label}>${escapeHtml(
       token.label ?? token.target,
@@ -36,12 +40,28 @@ const wikilink = (raw: boolean): TokenizerAndRendererExtension => ({
   },
 });
 
-const marked = new Marked({ gfm: true, breaks: false }, { extensions: [wikilink(false)] });
-const rawMarked = new Marked({ gfm: true, breaks: false }, { extensions: [wikilink(true)] });
+const marked = new Marked({ gfm: true, breaks: false }, { extensions: [wikilink("editor")] });
+const rawMarked = new Marked({ gfm: true, breaks: false }, { extensions: [wikilink("raw")] });
+const plainMarked = new Marked({ gfm: true, breaks: false }, { extensions: [wikilink("plain")] });
 
 export function markdownToHtml(markdown: string, { raw = false } = {}): string {
   return (raw ? rawMarked : marked).parse(markdown, { async: false });
 }
+
+/** HTML for reading: links become the words they show. */
+export function markdownToPlainHtml(markdown: string): string {
+  return plainMarked.parse(markdown, { async: false });
+}
+
+/** Marked's tokens, with `[[links]]` as `{ type: "wikilink", target, label }`. */
+export const markdownTokens = (markdown: string) => plainMarked.lexer(markdown);
+
+/** Replace every `[[link]]` with the words it shows, leaving the rest of the Markdown alone. */
+export const flattenLinks = (markdown: string) =>
+  markdown.replace(new RegExp(`(\\\\*)${WIKILINK.source}`, "g"), (whole, slashes: string, target: string, label?: string) =>
+    // An odd number of backslashes escapes the first bracket, so it isn't a link.
+    slashes.length % 2 ? whole : slashes + (label ?? target).trim(),
+  );
 
 /**
  * Raw mode edits links as text. Before saving, turn every complete `[[...]]` in

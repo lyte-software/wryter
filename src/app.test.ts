@@ -4,6 +4,7 @@ import { act } from "preact/test-utils";
 import { App } from "./App";
 import { actions, useStore } from "./store";
 import { SAMPLE_TITLE } from "./sample";
+import { fs } from "./fs";
 
 /** Smoke test: the whole UI mounts and the main flows work in a DOM. */
 
@@ -63,6 +64,58 @@ describe("app", () => {
     expect(heading.textContent).toBe("Your projects");
     expect($(".recents strong")!.textContent).toBe(SAMPLE_TITLE);
     expect([...root().querySelectorAll("button")].some((b) => b.textContent === "Open folder…")).toBe(false);
+  });
+
+  it("exports the manuscript from the status bar and remembers the choices", async () => {
+    await openSample();
+    const open = [...root().querySelectorAll(".statusbar button")].find((b) => b.textContent === "Export…") as HTMLElement;
+    await act(() => open.click());
+    const dialog = await until(() => $<HTMLFormElement>("form.export"));
+    const markdown = [...dialog.querySelectorAll<HTMLInputElement>('input[type="radio"]')][1];
+    await act(() => markdown.click());
+    const author = dialog.querySelector<HTMLInputElement>(".field input")!;
+    author.value = "Ana Ruiz";
+    await act(() => void author.dispatchEvent(new Event("input", { bubbles: true })));
+    await act(() => void dialog.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true })));
+    const done = await until(() => $(".export-done"));
+
+    const title = useStore.getState().project!.file.title;
+    const path = `/browser/Exports/${title}.md`;
+    expect(done.textContent).toBe(`Saved to ${path}`);
+    expect(await fs.readText(path)).toMatch(/^---\ntitle: .+\nauthor: Ana Ruiz\n---\n\n# /);
+    expect(useStore.getState().project!.file.export).toEqual({ format: "markdown", headings: "titles", author: "Ana Ruiz" });
+
+    await act(() => void dialog.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })));
+    expect($("form.export")).toBeNull();
+  });
+
+  it("searches the text from Ctrl+P and opens the match in the find bar", async () => {
+    await openSample();
+    const key = (k: string, extra: KeyboardEventInit = {}) =>
+      act(() => void window.dispatchEvent(new KeyboardEvent("keydown", { key: k, ctrlKey: true, bubbles: true, ...extra })));
+    await key("p");
+    const input = await until(() => $<HTMLInputElement>(".palette input"));
+    input.value = "lantern";
+    await act(() => void input.dispatchEvent(new Event("input", { bubbles: true })));
+    const hit = await until(() => $<HTMLElement>(".palette .text-hit"));
+    expect($(".palette-heading")!.textContent).toBe("In the text");
+    expect(hit.querySelector("mark")!.textContent!.toLowerCase()).toBe("lantern");
+    await act(() => hit.click());
+
+    const find = await until(() => $<HTMLInputElement>(".find-bar input"));
+    expect(find.value).toBe("lantern");
+    expect($(".find-count")!.textContent).toMatch(/^1 of \d+$/);
+    expect(root().querySelectorAll(".ProseMirror .search-match").length).toBeGreaterThan(0);
+
+    await act(() => void find.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true })));
+    expect($(".find-count")!.textContent).toMatch(/^2 of /);
+
+    await act(() => void find.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true })));
+    expect($(".find-bar")).toBeNull();
+    expect(root().querySelectorAll(".ProseMirror .search-match").length).toBe(0);
+
+    await key("h");
+    await until(() => $('.find-bar input[aria-label="Replace with"]'));
   });
 
   it("toggles focus mode with Ctrl+Shift+F", async () => {

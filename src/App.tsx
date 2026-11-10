@@ -5,10 +5,11 @@ import { Binder } from "./ui/Binder";
 import { Inspector } from "./ui/Inspector";
 import { StatusBar } from "./ui/StatusBar";
 import { QuickOpen } from "./ui/QuickOpen";
+import { ExportDialog } from "./ui/ExportDialog";
 import { Welcome } from "./ui/Welcome";
 
 export function App() {
-  const { project, openId, focus, theme, quickOpen } = useStore();
+  const { project, openId, focus, theme, quickOpen, exportOpen } = useStore();
   const doc = project && openId ? project.docs[openId] ?? null : null;
 
   useEffect(() => {
@@ -24,7 +25,25 @@ export function App() {
       } else if (mod && e.key.toLowerCase() === "p" && useStore.getState().project) {
         e.preventDefault();
         actions.setQuickOpen(true);
-      } else if (e.key === "Escape" && !e.defaultPrevented && useStore.getState().focus && !useStore.getState().quickOpen) {
+      } else if (mod && !e.shiftKey && (e.key.toLowerCase() === "f" || e.key.toLowerCase() === "h") && useStore.getState().openId) {
+        e.preventDefault();
+        // Start from the selected words, when they're in the page and on one line.
+        const inPage = document.activeElement?.closest(".ProseMirror");
+        const picked = inPage ? (window.getSelection()?.toString().trim() ?? "") : "";
+        actions.openFind({
+          query: picked && !picked.includes("\n") && picked.length <= 100 ? picked : undefined,
+          replace: e.key.toLowerCase() === "h" ? true : undefined,
+        });
+      } else if (mod && e.key.toLowerCase() === "e" && !e.shiftKey && useStore.getState().project) {
+        e.preventDefault();
+        actions.setExportOpen(true);
+      } else if (
+        e.key === "Escape" &&
+        !e.defaultPrevented &&
+        useStore.getState().focus &&
+        !useStore.getState().quickOpen &&
+        !useStore.getState().exportOpen
+      ) {
         // defaultPrevented: a popup or field already used this Escape to close or cancel.
         actions.setFocus(false);
       }
@@ -48,6 +67,7 @@ export function App() {
       </main>
       {doc && <Inspector doc={doc} />}
       {quickOpen && <QuickOpen />}
+      {exportOpen && <ExportDialog />}
     </div>
   );
 }
