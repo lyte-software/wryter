@@ -5,7 +5,7 @@ import { actions, useStore } from "../store";
 import { resolverFor } from "../project/links";
 import { sectionFor, type Doc } from "../project/model";
 import { baseExtensions } from "./extensions";
-import { jsonToMarkdown, markdownToHtml } from "./markdown";
+import { jsonToMarkdown, linkifyText, markdownToHtml } from "./markdown";
 import {
   describeItem,
   entityLinkOptions,
@@ -21,22 +21,23 @@ const SERIALIZE_DELAY = 250;
 
 export function Editor({ doc }: { doc: Doc }) {
   const rev = useStore((s) => s.rev[doc.id] ?? 0);
-  // Remount when the doc changes underneath us (rename, link-all, ...).
-  return <DocEditor key={`${doc.id}#${rev}`} doc={doc} rev={rev} />;
+  const raw = useStore((s) => s.raw);
+  // Remount when the doc changes underneath us (rename, link-all, ...) or the view mode flips.
+  return <DocEditor key={`${doc.id}#${rev}${raw ? "#raw" : ""}`} doc={doc} rev={rev} raw={raw} />;
 }
 
-function DocEditor({ doc, rev }: { doc: Doc; rev: number }) {
+function DocEditor({ doc, rev, raw }: { doc: Doc; rev: number; raw: boolean }) {
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const [picking, setPicking] = useState<(Selected & { left: number; top: number }) | null>(null);
   const placeholder = doc.kind === "manuscript" ? "Begin writing…  Type [[ to link a character, place or item." : "Describe…";
 
   const editor = useEditor({
     extensions: [
-      ...baseExtensions(entityLinkOptions),
+      ...baseExtensions({ ...entityLinkOptions, raw }),
       Placeholder.configure({ placeholder }),
       Focus.configure({ mode: "deepest" }),
     ],
-    content: markdownToHtml(doc.body),
+    content: markdownToHtml(doc.body, { raw }),
     autofocus: doc.kind === "manuscript" ? "end" : false,
     editorProps: {
       attributes: { class: "prose", spellcheck: "true" },
@@ -66,7 +67,7 @@ function DocEditor({ doc, rev }: { doc: Doc; rev: number }) {
     timer.current = undefined;
     // If the doc was rewritten externally since we mounted, our copy is stale.
     if ((useStore.getState().rev[doc.id] ?? 0) !== rev) return;
-    actions.updateBody(doc.id, jsonToMarkdown(json));
+    actions.updateBody(doc.id, jsonToMarkdown(raw ? linkifyText(json) : json));
   };
 
   useEffect(

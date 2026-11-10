@@ -13,6 +13,8 @@ your manuscript, plus characters, locations and items you can link to as you wri
 - **Backlinks:** an entity's inspector lists every chapter it appears in, plus
   *unlinked mentions* (plain-text uses of its name or aliases) that you can link in one click.
 - **Rename-safe:** renaming a character rewrites every link to them across the project.
+- **Raw mode** (status bar): links show as their `[[Henry Bob|shady figure]]` source,
+  plain text you can edit directly. The `[[` picker still works. Stays on until you turn it off.
 - **Focus mode** (Ctrl+Shift+F): hides everything but the page and dims all but the
   current paragraph. **Quick open** (Ctrl+P). Light, Sepia, Dark and Programmer themes (status bar).
 

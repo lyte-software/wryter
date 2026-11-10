@@ -71,7 +71,10 @@ export function splitQuery(query: string): { name: string; label?: string } {
 export async function linkTo(editor: Editor, range: Range, item: LinkItem, { space = true } = {}) {
   const target = item.type === "doc" ? item.doc.title : item.title;
   const shown = item.label ?? (item.type === "doc" ? item.matched : undefined);
-  const link = { type: "entityLink", attrs: { target, label: shown && shown !== target ? shown : null } };
+  const label = shown && shown !== target ? shown : null;
+  const link = useStore.getState().raw
+    ? { type: "text", text: label ? `[[${target}|${label}]]` : `[[${target}]]` }
+    : { type: "entityLink", attrs: { target, label } };
   editor
     .chain()
     .focus()

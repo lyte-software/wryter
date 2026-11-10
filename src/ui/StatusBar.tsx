@@ -4,7 +4,7 @@ import { wordCount, type Doc } from "../project/model";
 
 export function StatusBar({ doc }: { doc: Doc | null }) {
   const project = useStore((s) => s.project)!;
-  const { save, error, focus, theme } = useStore();
+  const { save, error, focus, raw, theme } = useStore();
   const total = useMemo(
     () => Object.values(project.docs).reduce((n, d) => n + (d.kind === "manuscript" ? wordCount(d.body) : 0), 0),
     [project.docs],
@@ -29,6 +29,9 @@ export function StatusBar({ doc }: { doc: Doc | null }) {
           </option>
         ))}
       </select>
+      <button onClick={() => actions.setRaw(!raw)} title="Show links as [[Name|Text]]" aria-pressed={raw}>
+        Raw
+      </button>
       <button onClick={() => actions.setFocus(!focus)} title="Focus mode (Ctrl+Shift+F)">
         Focus
       </button>

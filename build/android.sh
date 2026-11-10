@@ -43,7 +43,8 @@ export NDK_HOME
 if [ -z "${JAVA_HOME:-}" ]; then
   for d in /usr/lib/jvm/java-21-openjdk /usr/lib/jvm/java-17-openjdk /usr/lib/jvm/temurin-17-jdk \
     "/Applications/Android Studio.app/Contents/jbr/Contents/Home"; do
-    [ -d "$d" ] && { JAVA_HOME="$d"; break; }
+    # Check for javac, not the folder: uninstalled packages can leave an empty one behind.
+    [ -x "$d/bin/javac" ] && { JAVA_HOME="$d"; break; }
   done
 fi
 [ -n "${JAVA_HOME:-}" ] || die "no JDK 17 or 21 found, set JAVA_HOME"

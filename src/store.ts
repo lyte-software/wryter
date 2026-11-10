@@ -32,6 +32,8 @@ interface State {
   /** Bumped when a doc changes outside the editor, so the editor reloads it. */
   rev: Record<string, number>;
   focus: boolean;
+  /** Show links as their `[[Name|Text]]` source instead of highlighted names. */
+  raw: boolean;
   theme: Theme;
   save: SaveState;
   error: string | null;
@@ -65,6 +67,7 @@ export const useStore = create<State>(() => ({
   openId: null,
   rev: {},
   focus: false,
+  raw: prefs.get<boolean>("raw", false),
   theme: savedTheme(prefs.get<string>("theme", "light")),
   save: "saved",
   error: null,
@@ -311,6 +314,11 @@ export const actions = {
 
   setFocus(focus: boolean) {
     set({ focus });
+  },
+
+  setRaw(raw: boolean) {
+    prefs.set("raw", raw);
+    set({ raw });
   },
 
   setTheme(theme: Theme) {

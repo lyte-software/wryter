@@ -10,6 +10,8 @@ export interface EntityLinkOptions {
   kindOf?: (target: string) => string | undefined;
   /** Lets node views re-colour when the project changes. Returns an unsubscribe. */
   subscribe?: (onChange: () => void) => () => void;
+  /** Raw mode: links stay as typed `[[...]]` text, so nothing converts them to nodes. */
+  raw?: boolean;
 }
 
 export const entityLinkKey = new PluginKey("entityLinkSuggestion");
@@ -78,6 +80,7 @@ export const EntityLink = Node.create<EntityLinkOptions>({
   },
 
   addInputRules() {
+    if (this.options.raw) return [];
     // Typing a complete `[[Name]]` or `[[Name|label]]` by hand converts it too.
     return [
       nodeInputRule({
@@ -97,6 +100,8 @@ export const EntityLink = Node.create<EntityLinkOptions>({
         char: "[[",
         allowSpaces: true,
         allowedPrefixes: null,
+        // A closed `[[...]]` is finished; without this the match runs on past it in raw text.
+        allow: ({ state, range }) => !state.doc.textBetween(range.from, range.to).includes("]]"),
         ...suggestion,
         editor: this.editor,
       }),

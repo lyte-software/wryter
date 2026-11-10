@@ -11,27 +11,64 @@ import type { JSONContent } from "@tiptap/core";
 const escapeHtml = (s: string) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
-const wikilink: TokenizerAndRendererExtension = {
+/** `[[target]]` or `[[target|label]]`, the same shape the editor's input rule accepts. */
+const WIKILINK = /\[\[([^\[\]|\n]+?)(?:\|([^\[\]\n]+?))?\]\]/;
+
+const wikilinkSource = (target: string, label?: string | null) =>
+  label && label !== target ? `[[${target}|${label}]]` : `[[${target}]]`;
+
+const wikilink = (raw: boolean): TokenizerAndRendererExtension => ({
   name: "wikilink",
   level: "inline",
   start: (src) => src.indexOf("[["),
   tokenizer(src) {
-    const m = /^\[\[([^\[\]|\n]+?)(?:\|([^\[\]\n]+?))?\]\]/.exec(src);
+    const m = new RegExp(`^${WIKILINK.source}`).exec(src);
     if (!m) return undefined;
     return { type: "wikilink", raw: m[0], target: m[1].trim(), label: m[2]?.trim() };
   },
   renderer(token) {
+    // Raw mode keeps the link as plain, editable text.
+    if (raw) return escapeHtml(wikilinkSource(token.target, token.label));
     const label = token.label ? ` data-label="${escapeHtml(token.label)}"` : "";
     return `<span data-entity-link data-target="${escapeHtml(token.target)}"${label}>${escapeHtml(
       token.label ?? token.target,
     )}</span>`;
   },
-};
+});
 
-const marked = new Marked({ gfm: true, breaks: false }, { extensions: [wikilink] });
+const marked = new Marked({ gfm: true, breaks: false }, { extensions: [wikilink(false)] });
+const rawMarked = new Marked({ gfm: true, breaks: false }, { extensions: [wikilink(true)] });
 
-export function markdownToHtml(markdown: string): string {
-  return marked.parse(markdown, { async: false });
+export function markdownToHtml(markdown: string, { raw = false } = {}): string {
+  return (raw ? rawMarked : marked).parse(markdown, { async: false });
+}
+
+/**
+ * Raw mode edits links as text. Before saving, turn every complete `[[...]]` in
+ * the text back into a link node so it isn't escaped as literal brackets.
+ */
+export function linkifyText(node: JSONContent): JSONContent {
+  if (!node.content) return node;
+  const content: JSONContent[] = [];
+  for (const child of node.content) {
+    if (child.type !== "text" || !child.text?.includes("[[")) {
+      content.push(linkifyText(child));
+      continue;
+    }
+    const pattern = new RegExp(WIKILINK.source, "g");
+    let last = 0;
+    for (const m of child.text.matchAll(pattern)) {
+      if (m.index > last) content.push({ ...child, text: child.text.slice(last, m.index) });
+      const target = m[1].trim();
+      const label = m[2]?.trim();
+      const link: JSONContent = { type: "entityLink", attrs: { target, label: label && label !== target ? label : null } };
+      if (child.marks) link.marks = child.marks;
+      content.push(link);
+      last = m.index + m[0].length;
+    }
+    if (last < child.text.length) content.push({ ...child, text: child.text.slice(last) });
+  }
+  return { ...node, content };
 }
 
 // ---------------------------------------------------------------------------
@@ -59,7 +96,7 @@ function leaf(node: JSONContent): string {
       return "\\\n";
     case "entityLink": {
       const { target, label } = node.attrs ?? {};
-      return label && label !== target ? `[[${target}|${label}]]` : `[[${target}]]`;
+      return wikilinkSource(target, label);
     }
     default:
       return "";
